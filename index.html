@@ -12,412 +12,418 @@
 </head>
 
 <script>
-  require(
-    [
-  "esri/Map",
-  "esri/layers/GeoJSONLayer",
-  "esri/views/SceneView",
-  "esri/Basemap",
-  "esri/layers/TileLayer",
-  "esri/widgets/Legend",
-  "esri/widgets/HistogramRangeSlider",
-  "esri/renderers/smartMapping/statistics/histogram",
-  "esri/core/promiseUtils"
+require(
+  [
+"esri/Map",
+"esri/layers/GeoJSONLayer",
+"esri/views/SceneView",
+"esri/Basemap",
+"esri/layers/TileLayer",
+"esri/widgets/Legend",
+"esri/widgets/Expand",
+"esri/widgets/HistogramRangeSlider",
+"esri/renderers/smartMapping/statistics/histogram",
+"esri/core/promiseUtils"
 ], 
-function(Map, GeoJSONLayer, SceneView, Basemap, TileLayer, Legend, HistogramRangeSlider, histogram, promiseUtils) {
-    var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function(Map, GeoJSONLayer, SceneView, Basemap, TileLayer, Legend, Expand, HistogramRangeSlider, histogram, promiseUtils) {
+  var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-    var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-    Date.prototype.getMonthName = function() {
-        return months[ this.getMonth() ];
-    };
-    Date.prototype.getDayName = function() {
-        return days[ this.getDay() ];
-    };
- 
-
-
-  /*****************************************
-   * Date Time
-   *****************************************/
-  var now = new Date();
-  var dd = String(now.getDate()).padStart(2, '0');
-  var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
-  var yyyy = now.getFullYear();
-  var day = now.getDayName();
-  var month = now.getMonthName();
-  var hour = now.getHours();
-  var min = now.getMinutes();
-  var sec = now.getSeconds();
-  var maxtime = now.getTime();
-  const thirty = 2592000000
-  var mintime = maxtime - thirty;
-    var fdate = day + " " + month + " " + dd + " " + yyyy + " "+ "12" + ":" + min + " " + sec + " GMT-0700 (Mountain Standard Time)";
+  Date.prototype.getMonthName = function() {
+      return months[ this.getMonth() ];
+  };
+  Date.prototype.getDayName = function() {
+      return days[ this.getDay() ];
+  };
 
 
-  /*****************************************
-   * Define map and view
-   *****************************************/
 
-  const map = new Map({basemap: "oceans"});
+/*****************************************
+ * Date Time
+ *****************************************/
+var now = new Date();
+var dd = String(now.getDate()).padStart(2, '0');
+var mm = String(now.getMonth() + 1).padStart(2, '0'); //January is 0!
+var yyyy = now.getFullYear();
+var day = now.getDayName();
+var month = now.getMonthName();
+var hour = now.getHours();
+var min = now.getMinutes();
+var sec = now.getSeconds();
+var maxtime = now.getTime();
+const thirty = 2592000000
+var mintime = maxtime - thirty;
+  var fdate = day + " " + month + " " + dd + " " + yyyy + " "+ "12" + ":" + min + " " + sec + " GMT-0700 (Mountain Standard Time)";
 
-  const view = new SceneView({
-    container: "viewDiv",
-    camera: {
-      position: [-110, 44.5, 400000],
-      heading: 0,
-      tilt: 0
+
+/*****************************************
+ * Define map and view
+ *****************************************/
+
+const map = new Map({basemap: "oceans"});
+
+const view = new SceneView({
+  container: "viewDiv",
+  camera: {
+    position: [-110, 44.5, 400000],
+    heading: 0,
+    tilt: 0
+  },
+  qualityProfile: "high",
+  map: map,
+  alphaCompositingEnabled: true,
+  environment: {
+    background: {
+      type: "color",
+      color: [0, 0, 0, 0]
     },
-    qualityProfile: "high",
-    map: map,
-    alphaCompositingEnabled: true,
-    environment: {
-      background: {
-        type: "color",
-        color: [0, 0, 0, 0]
-      },
-      lighting: {
-        date: fdate,
-      },
-      starsEnabled: true,
-      atmosphereEnabled: true
+    lighting: {
+      date: fdate,
     },
-    highlightOptions: {
-      fillOpacity: 0,
-      color: "#ffffff"
-    },
-    constraints: {
-      altitude: {
-        min: 4000
-      }
-    }
-  });
-
-
-  /*****************************************
-   * Create GeoJSONLayer
-   * from the USGS earthquake feed
-   *****************************************/
-
-  const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson";
-
-  const earthquakesLayer = new GeoJSONLayer({
-    url: url,
-    copyright: "USGS Earthquakes",
-    screenSizePerspectiveEnabled: false,
-    title: "Earthquakes in the last 30 days",
-    popupTemplate: {
-      title: "Earthquake Info",
-      content: "Magnitude <b>{mag}</b> {type} hit <b>{place}</b> on <b>{time}</b>",
-      fieldInfos: [
-        {
-          fieldName: "time",
-          format: {
-            dateFormat: "short-date-short-time"
-          }
-        }
-      ]
-    }
-  });
-
-  map.add(earthquakesLayer);
-  
-  
-  /*****************************************
-   * Create YNP layer
-   *****************************************/
-  
-  var parkRenderer = {
-    type: "simple",
-    symbol:{
-      type: "simple-fill", 
-      color: [0, 0, 0, 0],
-      outline: { 
-        width: 3,
-        color: "orange"
-      }
+    starsEnabled: true,
+    atmosphereEnabled: true
+  },
+  highlightOptions: {
+    fillOpacity: 0,
+    color: "#ffffff"
+  },
+  constraints: {
+    altitude: {
+      min: 4000
     }
   }
-  
-  const npsboundaryurl = "https://opendata.arcgis.com/datasets/5f83e5be40a443478e5f966b5536050d_0.geojson?where= UNIT_CODE = 'YELL'";
-  const yellLayer = new GeoJSONLayer ({
-    url: npsboundaryurl,
-    screenSizePerspectiveEnabled: false,
-    title: "Yellowstone Boundary",
-    renderer: parkRenderer,
-  });
-  map.add(yellLayer);
-  
-  
-  
+});
 
-  // the number of earthquakes in each class is displayed in the legend
 
-  const statDefinitions = [
- {
-    onStatisticField:
-      "CASE WHEN mag < 1.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "m1",
-    statisticType: "sum"
-  },
-  {
-    onStatisticField:
-      "CASE WHEN mag < 2.0 AND mag >= 1.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "m12",
-    statisticType: "sum"
-  },
-  {
-    onStatisticField:
-      "CASE WHEN mag < 3.0 AND mag >= 2.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "m23",
-    statisticType: "sum"
-  },
-  {
-    onStatisticField:
-      "CASE WHEN mag < 4.0 AND mag >= 3.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "m34",
-    statisticType: "sum"
-  },
-  {
-    onStatisticField:
-      "CASE WHEN mag < 5.0 AND mag >= 4.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "m45",
-    statisticType: "sum"
-  },
-  {
-    onStatisticField:
-      "CASE WHEN mag < 7.0 AND mag >= 5.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "medium",
-    statisticType: "sum"
-  }, {
-    onStatisticField:
-      "CASE WHEN mag >= 7.0 THEN 1 ELSE 0 END",
-    outStatisticFieldName: "major",
-    statisticType: "sum"
-  }, {
-    onStatisticField: "mag",
-    outStatisticFieldName: "total",
-    statisticType: "count"
-  }];
+/*****************************************
+ * Create GeoJSONLayer
+ * from the USGS earthquake feed
+ *****************************************/
 
-  // the symbol for each earthquake class is composed of multiple symbol layers
+const url = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson";
 
-  var secondSymbolLayer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    outline: {color: [255, 255, 255, 1], size: 1},
-    size: 16
-  };
-
-  var thirdSymbolLayer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    //material: { color: [245, 116, 73, 0] },
-    //outline: {color: [255, 255, 255, 0.9], size: 1},
-    size: 20
-  };
- 
-    var m01Layer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    material: { color: [245, 116, 73, 0.9] },
-    size: 2
-  };
-    var m12Layer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    material: { color: [245, 116, 73, 0.9] },
-    size: 4
-  };
-    var m23Layer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    material: { color: [245, 116, 73, 0.9] },
-    size: 6
-  };
-    var m34Layer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    material: { color: [245, 116, 73, 0.9] },
-    size: 8
-  };
-    var m45Layer = {
-    type: "icon",
-    resource: { primitive: "circle"},
-    material: { color: [245, 116, 73, 0.9] },
-    outline: {color: [255, 255, 255, 0.9], size: 1},
-    size: 12
-  };
-  
-
-  earthquakesLayer.queryFeatures({geometry: view.extent, returnGeometry: true, where: "1=1", outStatistics: statDefinitions})
-    .then(function(result){
-      statResults = result.features[0].attributes;
-      var renderer = {
-        type: "class-breaks",
-        field: "mag",
-        legendOptions: {
-          title: "Legend"
-        },
-        visualVariables: 
-        [{type: "color", field: "time", stops: [{value: mintime,color: "blue", label: "30 Days",}, {value: maxtime, color: "red", label: "Present",}]}
-        ],
-        classBreakInfos: [
-        {
-          minValue: -2,
-          maxValue: 1,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m01Layer]
-          },
-          label: annotate(statResults.m1) + " magnitude less than 1."
-        },
-        {
-          minValue: 1,
-          maxValue: 2,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m12Layer]
-          },
-          label: annotate(statResults.m12) + " magnitude 1-2."
-        },
-         {
-          minValue: 2,
-          maxValue: 3,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m23Layer]
-          },
-          label: annotate(statResults.m23) + " magnitude 2-3."
-        },
-         {
-          minValue: 3,
-          maxValue: 4,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m34Layer]
-          },
-          label: annotate(statResults.m34) + " magnitude 3-4."
-        },
-         {
-          minValue: 4,
-          maxValue: 5,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m45Layer]
-          },
-          label: annotate(statResults.m45) + " magnitude 4-5."
-        },
-          {
-          minValue: 5,
-          maxValue: 7,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m45Layer, secondSymbolLayer, m45Layer]
-          },
-          label: annotate(statResults.medium) + " between 5 and 7. They can damage buildings and other structures in populated areas."
-        },
-          {
-          minValue: 7,
-          maxValue: 10,
-          symbol: {
-            type: "point-3d",
-            symbolLayers: [m45Layer, secondSymbolLayer, thirdSymbolLayer, secondSymbolLayer, m45Layer]
-          },
-          label: annotate(statResults.major) + " larger than 7. These earthquakes are likely to cause damage even to earthquake resistant structures."
-        }]
+const earthquakesLayer = new GeoJSONLayer({
+  url: url,
+  copyright: "USGS Earthquakes",
+  screenSizePerspectiveEnabled: false,
+  title: "Earthquakes in the last 30 days",
+  popupTemplate: {
+    title: "Earthquake Info",
+    content: "Magnitude <b>{mag}</b> {type} hit <b>{place}</b> on <b>{time}</b>",
+    fieldInfos: [
+      {
+        fieldName: "time",
+        format: {
+          dateFormat: "short-date-short-time"
+        }
       }
-      earthquakesLayer.renderer = renderer;
+    ]
+  }
+});
+
+map.add(earthquakesLayer);
+
+
+/*****************************************
+ * Create YNP layer
+ *****************************************/
+
+var parkRenderer = {
+  type: "simple",
+  symbol:{
+    type: "simple-fill", 
+    color: [0, 0, 0, 0],
+    outline: { 
+      width: 3,
+      color: "orange"
+    }
+  }
+}
+
+const npsboundaryurl = "https://opendata.arcgis.com/datasets/5f83e5be40a443478e5f966b5536050d_0.geojson?where= UNIT_CODE = 'YELL'";
+const yellLayer = new GeoJSONLayer ({
+  url: npsboundaryurl,
+  screenSizePerspectiveEnabled: false,
+  title: "Yellowstone Boundary",
+  renderer: parkRenderer,
+});
+map.add(yellLayer);
+
+
+
+
+// the number of earthquakes in each class is displayed in the legend
+
+const statDefinitions = [
+{
+  onStatisticField:
+    "CASE WHEN mag < 1.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "m1",
+  statisticType: "sum"
+},
+{
+  onStatisticField:
+    "CASE WHEN mag < 2.0 AND mag >= 1.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "m12",
+  statisticType: "sum"
+},
+{
+  onStatisticField:
+    "CASE WHEN mag < 3.0 AND mag >= 2.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "m23",
+  statisticType: "sum"
+},
+{
+  onStatisticField:
+    "CASE WHEN mag < 4.0 AND mag >= 3.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "m34",
+  statisticType: "sum"
+},
+{
+  onStatisticField:
+    "CASE WHEN mag < 5.0 AND mag >= 4.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "m45",
+  statisticType: "sum"
+},
+{
+  onStatisticField:
+    "CASE WHEN mag < 7.0 AND mag >= 5.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "medium",
+  statisticType: "sum"
+}, {
+  onStatisticField:
+    "CASE WHEN mag >= 7.0 THEN 1 ELSE 0 END",
+  outStatisticFieldName: "major",
+  statisticType: "sum"
+}, {
+  onStatisticField: "mag",
+  outStatisticFieldName: "total",
+  statisticType: "count"
+}];
+
+// the symbol for each earthquake class is composed of multiple symbol layers
+
+var secondSymbolLayer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  outline: {color: [255, 255, 255, 1], size: 1},
+  size: 16
+};
+
+var thirdSymbolLayer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  //material: { color: [245, 116, 73, 0] },
+  //outline: {color: [255, 255, 255, 0.9], size: 1},
+  size: 20
+};
+
+  var m01Layer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  material: { color: [245, 116, 73, 0.9] },
+  size: 2
+};
+  var m12Layer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  material: { color: [245, 116, 73, 0.9] },
+  size: 4
+};
+  var m23Layer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  material: { color: [245, 116, 73, 0.9] },
+  size: 6
+};
+  var m34Layer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  material: { color: [245, 116, 73, 0.9] },
+  size: 8
+};
+  var m45Layer = {
+  type: "icon",
+  resource: { primitive: "circle"},
+  material: { color: [245, 116, 73, 0.9] },
+  outline: {color: [255, 255, 255, 0.9], size: 1},
+  size: 12
+};
+
+
+earthquakesLayer.queryFeatures({geometry: view.extent, returnGeometry: true, where: "1=1", outStatistics: statDefinitions})
+  .then(function(result){
+    statResults = result.features[0].attributes;
+    var renderer = {
+      type: "class-breaks",
+      field: "mag",
+      legendOptions: {
+        title: "Legend"
+      },
+      visualVariables: 
+      [{type: "color", field: "time", stops: [{value: mintime,color: "blue", label: "30 Days",}, {value: maxtime, color: "red", label: "Present",}]}
+      ],
+      classBreakInfos: [
+      {
+        minValue: -2,
+        maxValue: 1,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m01Layer]
+        },
+        label: annotate(statResults.m1) + " magnitude less than 1."
+      },
+      {
+        minValue: 1,
+        maxValue: 2,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m12Layer]
+        },
+        label: annotate(statResults.m12) + " magnitude 1-2."
+      },
+       {
+        minValue: 2,
+        maxValue: 3,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m23Layer]
+        },
+        label: annotate(statResults.m23) + " magnitude 2-3."
+      },
+       {
+        minValue: 3,
+        maxValue: 4,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m34Layer]
+        },
+        label: annotate(statResults.m34) + " magnitude 3-4."
+      },
+       {
+        minValue: 4,
+        maxValue: 5,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m45Layer]
+        },
+        label: annotate(statResults.m45) + " magnitude 4-5."
+      },
+        {
+        minValue: 5,
+        maxValue: 7,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m45Layer, secondSymbolLayer, m45Layer]
+        },
+        label: annotate(statResults.medium) + " between 5 and 7. They can damage buildings and other structures in populated areas."
+      },
+        {
+        minValue: 7,
+        maxValue: 10,
+        symbol: {
+          type: "point-3d",
+          symbolLayers: [m45Layer, secondSymbolLayer, thirdSymbolLayer, secondSymbolLayer, m45Layer]
+        },
+        label: annotate(statResults.major) + " larger than 7. These earthquakes are likely to cause damage even to earthquake resistant structures."
+      }]
+    }
+    earthquakesLayer.renderer = renderer;
+  });
+
+
+  function annotate(no) {
+    if (no && no !== 0) {
+      if (no === 1) {
+        return "1 earthquake";
+      }
+      return no.toString() + " earthquakes";
+    }
+    return "No earthquakes";
+  }
+
+/*****************************************
+ * Create a histogram with a range slider
+ * to filter earthquakes based on magnitude
+ *****************************************/
+
+view.whenLayerView(earthquakesLayer).then(function(lyrView) {
+  const min = -2;
+  const max = 10;
+  histogram({
+    layer: earthquakesLayer,
+    field: "mag",
+    numBins: 30,
+    minValue: min,
+    maxValue: max
+  }).then(function(histogramResponse) {
+    const slider = new HistogramRangeSlider({
+      bins: histogramResponse.bins,
+      min: min,
+      max: max,
+      values: [min, max],
+      includedBarColor: [117, 19, 71],
+      excludedBarColor: [200, 200, 200],
+      rangeType: "between",
+      container: document.getElementById("histogram")
     });
 
-
-    function annotate(no) {
-      if (no && no !== 0) {
-        if (no === 1) {
-          return "1 earthquake";
+    slider.on(["thumb-change", "thumb-drag", "segment-drag"], function() {
+      filterByHistogramRange().catch(function(error) {
+        if (error.name !== "AbortError") {
+          console.error(error);
         }
-        return no.toString() + " earthquakes";
-      }
-      return "No earthquakes";
-    }
-
-  /*****************************************
-   * Create a histogram with a range slider
-   * to filter earthquakes based on magnitude
-   *****************************************/
-
-  view.whenLayerView(earthquakesLayer).then(function(lyrView) {
-    const min = -2;
-    const max = 10;
-    histogram({
-      layer: earthquakesLayer,
-      field: "mag",
-      numBins: 30,
-      minValue: min,
-      maxValue: max
-    }).then(function(histogramResponse) {
-      const slider = new HistogramRangeSlider({
-        bins: histogramResponse.bins,
-        min: min,
-        max: max,
-        values: [min, max],
-        includedBarColor: [117, 19, 71],
-        excludedBarColor: [200, 200, 200],
-        rangeType: "between",
-        container: document.getElementById("histogram")
       });
+    });
 
-      slider.on(["thumb-change", "thumb-drag", "segment-drag"], function() {
-        filterByHistogramRange().catch(function(error) {
-          if (error.name !== "AbortError") {
-            console.error(error);
-          }
-        });
-      });
+    const filterByHistogramRange = promiseUtils.debounce(function() {
+      const filterClause = slider.generateWhereClause("mag");
+      lyrView.filter = {
+        where: filterClause
+      };
+      return updateHistogramCount(filterClause, slider.values);
+    });
 
-      const filterByHistogramRange = promiseUtils.debounce(function() {
-        const filterClause = slider.generateWhereClause("mag");
-        lyrView.filter = {
-          where: filterClause
-        };
-        return updateHistogramCount(filterClause, slider.values);
-      });
+    updateHistogramCount("1=1", [min, max]);
+  })
+  .catch(console.error);
+});
 
-      updateHistogramCount("1=1", [min, max]);
-    })
-    .catch(console.error);
-  });
+function updateHistogramCount(clause, values) {
+  const query = earthquakesLayer.createQuery();
+  query.where = clause;
+  query.outStatistics = statDefinitions;
+  return earthquakesLayer.queryFeatures(query)
+    .then(function(result){
+      document.getElementById("histCount").innerHTML = annotate(result.features[0].attributes.total) + " with magnitude between " + transform(values[0]) + " and " + transform(values[1]);
+    });
+}
 
-  function updateHistogramCount(clause, values) {
-    const query = earthquakesLayer.createQuery();
-    query.where = clause;
-    query.outStatistics = statDefinitions;
-    return earthquakesLayer.queryFeatures(query)
-      .then(function(result){
-        document.getElementById("histCount").innerHTML = annotate(result.features[0].attributes.total) + " with magnitude between " + transform(values[0]) + " and " + transform(values[1]);
-      });
-  }
+function transform(number) {
+  return (Math.round(number * 100)/100).toString();
+}
 
-  function transform(number) {
-    return (Math.round(number * 100)/100).toString();
-  }
+/*****************************************
+ * Add side panel with legend and histogram
+ * to the view
+ *****************************************/
 
-  /*****************************************
-   * Add side panel with legend and histogram
-   * to the view
-   *****************************************/
+const sidePanelInfo = document.getElementById("sidePanelInfo");
+view.ui.add(sidePanelInfo, "top-right");
 
-  const sidePanelInfo = document.getElementById("sidePanelInfo");
-  view.ui.add(sidePanelInfo, "top-right");
-
-  new Legend({
+const legend = new Expand ({
+  content: new Legend({
     view: view,
+    style: "classic",
     layerInfos: [{
-      layer: earthquakesLayer,
-    }],
-    container: document.getElementById("legend")
-  });
+      layer: earthquakesLayer
+    }]
+  }),
+  view: view,
+  expanded: true
+});
+view.ui.add(legend, "bottom-left");
 });
 </script>
 
