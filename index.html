@@ -141,7 +141,7 @@ var parkRenderer = {
   }
 }
 
-const npsboundaryurl = "https://opendata.arcgis.com/datasets/5f83e5be40a443478e5f966b5536050d_0.geojson?where= UNIT_CODE = 'YELL'";
+const npsboundaryurl = "https://opendata.arcgis.com/datasets/5f83e5be40a443478e5f966b5536050d_0.geojson?where=UPPER(UNIT_CODE)%20like%20%27%25YELL%25%27&outFields=*&outSR=4326&f=json";
 const yellLayer = new GeoJSONLayer ({
   url: npsboundaryurl,
   screenSizePerspectiveEnabled: false,
